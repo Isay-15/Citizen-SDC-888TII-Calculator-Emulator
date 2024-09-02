@@ -2,7 +2,7 @@
 
 This project is a Java-based emulator for the classic Citizen SDC-888TII calculator, built using the JavaFX open source library. The calculator is relevant for accountants.
 
-***Calculator img***
+<img title="a title" alt="Alt text" src="/imgs/Calc2.jpg">
 
 ## Features:
 
