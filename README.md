@@ -2,7 +2,7 @@
 
 This project is a Java-based emulator for the classic Citizen SDC-888TII calculator, built using the JavaFX open source library. The calculator is relevant for accountants.
 
-<img title="Citizen SDC 888TII" alt="Calc" src="/imgs/Calc_1.png">
+<img title="Citizen SDC 888TII" alt="Calc" src="/imgs/Calc.png">
 
 ## Features:
 
@@ -21,8 +21,10 @@ Java 18 or higher.
 
 ## Usage:
 
-- Utilize the "Decimal" switcher to adjust the number of decimal places. <img title="Decimal" alt="Sw_2" src="/imgs/Sw_2.jpg">
-- Select a rounding mode using the "Round" switcher. <img title="Round" alt="Sw_1" src="/imgs/Sw_1.jpg">
+- Utilize the "Decimal" switcher to adjust the number of decimal places.<br/><br/>
+  <img title="Decimal" alt="Sw_2" src="/imgs/Sw_2.jpg">
+- Select a rounding mode using the "Round" switcher.<br/><br/>
+  <img title="Round" alt="Sw_1" src="/imgs/Sw_1.jpg">
 - Use the virtual buttons on the GUI to input numbers, operators, and functions.
 - Press the "=" button to calculate the result.
 - Use the "CE" or "ON/AC" button to reset the display.
