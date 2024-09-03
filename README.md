@@ -17,7 +17,6 @@ Java 18 or higher.
 
 1. Download or clone the repository
 2. Run the command in the root directory: `.\mvnw clean javafx:run`
-3. Launch the emulator application.
 
 ## Usage:
 
