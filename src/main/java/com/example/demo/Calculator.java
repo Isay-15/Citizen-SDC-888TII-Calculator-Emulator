@@ -154,17 +154,24 @@ public class Calculator {
         if(name.equals("res"))
             resWasPressed = true;
 
-        if(op == null || error)
-            return collectResponse();
-
         double dDispNum = getDisplayNum();
+
+        if(op == null || error) {
+            if(switcher2 == Switcher2.AUTO)
+                displayedNum = dDispNum / 100 + "";
+
+            return collectResponse();
+        }
 
         double left = result ? dDispNum : register;
         double right = result ? register : dDispNum;
 
-        if(switcher2 == Switcher2.AUTO)
+        if(switcher2 == Switcher2.AUTO) {
+            left /= 100;
+
             if(op.equals("plus") || op.equals("minus"))
                 right /= 100;
+        }
 
         if(op.equals("div") && right == 0) {
             error = true;
