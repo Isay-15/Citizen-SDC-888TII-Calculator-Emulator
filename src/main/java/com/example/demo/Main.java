@@ -202,7 +202,7 @@ public class Main extends Application {
         addButton("div", true,358, 378, n -> calculator.procOpBtn(n));
 
         addButton("res", true,426, 504, n -> calculator.procResBtn(n));
-        addButton("%", true,427, 378, n -> calculator.procPercentBtn());
+        addButton("percent", true,427, 378, n -> calculator.procPercentBtn());
         addButton("ON_AC", true,40, 504, n -> calculator.procACBtn());
         addButton("CE_C", true,40, 566, n -> calculator.procCEBtn());
 
