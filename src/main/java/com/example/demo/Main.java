@@ -37,7 +37,7 @@ public class Main extends Application {
 
     private ImageView addImg(String name, double x, double y, String ext) {
         String path = getImgPath(name, ext);
-        ImageView imageView = new ImageView(new Image(path));
+        ImageView imageView = new ImageView(new Image("file:" + path));
         changeScale(imageView);
         imageView.setX(x);
         imageView.setY(y);
@@ -48,7 +48,7 @@ public class Main extends Application {
     }
 
     private String getImgPath(String name, String ext) {
-        return "C:\\Lessons\\demo\\imgs\\" + name + "." + ext;
+        return "imgs\\" + name + "." + ext;
     }
 
     private void addAnimation(ImageView imageView, double y) {
