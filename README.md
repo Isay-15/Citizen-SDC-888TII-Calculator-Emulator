@@ -16,7 +16,7 @@ Java 18 or higher.
 ## Installation and launch:
 
 1. Download or clone the repository
-2. Run the command in the root directory: `.\mvnw clean javafx:run`
+2. Run the command in the root directory: `.\mvnw clean javafx:run` or launch run_app.cmd
 
 ## Usage:
 
