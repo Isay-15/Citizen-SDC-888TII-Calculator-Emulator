@@ -6,14 +6,13 @@ import javafx.scene.shape.Line;
 import javafx.scene.shape.StrokeLineCap;
 
 public class Display {
-    // todo: final?
     private Digit[] digits = new Digit[12];
     private Line minus;
 
     public void draw(Group root, int x, int y) {
         int z = 0;
 
-        for(int i = 0; i < 12; i++) {
+        for (int i = 0; i < 12; i++) {
             digits[11 - i] = new Digit();
             digits[11 - i].draw(root, x + z, y);
             z += 28;
@@ -29,20 +28,19 @@ public class Display {
 
         number = number.replace(".", "");
 
-        if(number.indexOf('-') != -1) {
+        if (number.indexOf('-') != -1) {
             showNegative(number);
             number = number.replace("-", "");
         }
 
         showDigits(number);
-
         showRanking(number, dotPosFromEnd);
     }
 
     private int showDot(String number) {
         int dotPos = number.indexOf('.');
 
-        if(dotPos == -1)
+        if (dotPos == -1)
             dotPos = number.length() - 1;
 
         int dotPosFromEnd = number.length() - 1 - dotPos;
@@ -53,7 +51,7 @@ public class Display {
     }
 
     private void showNegative(String number) {
-        if(number.length() == 13) {
+        if (number.length() == 13) {
             setNegative(true);
         } else {
             int minusPos = number.indexOf('-');
@@ -63,15 +61,15 @@ public class Display {
     }
 
     private void showDigits(String number) {
-        for(int i = 0; i < number.length(); i++) {
+        for (int i = 0; i < number.length(); i++) {
             int idxFromEnd = number.length() - 1 - i;
             digits[i].set(Integer.parseInt(number.charAt(idxFromEnd) + ""));
         }
     }
 
     private void showRanking(String number, int dotPosFromEnd) {
-        for(int i = dotPosFromEnd, j = 0; i < number.length(); i++, j++)
-            if(j == 3) {
+        for (int i = dotPosFromEnd, j = 0; i < number.length(); i++, j++)
+            if (j == 3) {
                 digits[i].setRank(true);
                 j = 0;
             }
@@ -79,14 +77,15 @@ public class Display {
     private void reset() {
         setNegative(false);
 
-        for(int i = 0; i < 12; i++)
+        for (int i = 0; i < 12; i++)
             digits[i].reset();
     }
 
-    //todo: what about minus?
     public void setVisible(boolean turnOn) {
-        for(int i = 0; i < 12; i++)
+        for (int i = 0; i < 12; i++)
             digits[i].setVisible(turnOn);
+
+        minus.setVisible(turnOn);
     }
 
     private Line drawNegative(Group root) {
@@ -98,7 +97,6 @@ public class Display {
         line.setStrokeWidth(4);
         line.setStrokeLineCap(StrokeLineCap.ROUND);
         root.getChildren().add(line);
-
         return line;
     }
 

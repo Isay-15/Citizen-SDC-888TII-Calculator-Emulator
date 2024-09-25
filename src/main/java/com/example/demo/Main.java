@@ -9,6 +9,8 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.scene.image.Image;
 
+import java.math.RoundingMode;
+
 public class Main extends Application {
     private Group root;
     private Text error;
@@ -41,9 +43,7 @@ public class Main extends Application {
         changeScale(imageView);
         imageView.setX(x);
         imageView.setY(y);
-
         root.getChildren().add(imageView);
-
         return imageView;
     }
 
@@ -97,7 +97,6 @@ public class Main extends Application {
         indicator.setY(y);
         indicator.setFont(Font.font(18));
         root.getChildren().add(indicator);
-
         return indicator;
     }
 
@@ -120,20 +119,20 @@ public class Main extends Application {
 
         switcher.setOnMouseDragOver(mouseEvent -> {
             double mX = mouseEvent.getX();
-            if(57 < mX && mX <= 78)
+
+            if (57 < mX && mX <= 78)
                 switcher.setX(mX - switcher.getFitWidth() / 2);
         });
 
         switcher.setOnMouseDragExited(mouseEvent -> {
             double mX = mouseEvent.getX();
-
             int swIdx = (int) Math.round((mX - 57) / 9.6);
             swIdx = Math.min(Math.max(swIdx, 0), 2);
 
             double swX = swIdx * 9.6 + 57;
             switcher.setX(swX - switcher.getFitWidth() / 2);
 
-            calculator.switcher2 = Calculator.Switcher2.values()[swIdx];
+            calculator.switcher1 = Calculator.Switcher1.values()[swIdx];
         });
 
         switcher.setOnDragDetected(mouseEvent -> switcher.startFullDrag());
@@ -145,7 +144,7 @@ public class Main extends Application {
 
         switcher.setOnMouseDragOver(mouseEvent -> {
             double mX = mouseEvent.getX();
-            if(392 < mX && mX <= 443)
+            if (392 < mX && mX <= 443)
                 switcher.setX(mX - switcher.getFitWidth() / 2);
         });
 
@@ -177,7 +176,7 @@ public class Main extends Application {
         imageView.setOnMouseClicked(mouseEvent -> {
             displayResponse(meth.exec(name));
 
-            if(useBlink)
+            if (useBlink)
                 makeBlink();
         });
 

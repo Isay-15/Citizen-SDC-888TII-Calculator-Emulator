@@ -1,18 +1,26 @@
 package com.example.demo;
 
-import java.text.DecimalFormat;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
+
+import static java.math.BigDecimal.*;
 
 public class Calculator {
+
     private String displayedNum = "0";
-    private double register;
-    private double memNum1 = 0;
-    private double memNum2 = 0;
+    private BigDecimal register = null;
+
+    BigDecimal HUNDRED = new BigDecimal(100);
+    private BigDecimal memNum1 = new BigDecimal(0);
+    private BigDecimal memNum2 = new BigDecimal(0);
     private String op;
     private boolean ceWasPressed;
     private boolean mrc2WasPressed;
+    private boolean resWasPressed;
     private boolean error;
     private boolean result;
-    private boolean resWasPressed;
+
     private int muCnt = 0;
     private boolean muDiv;
     public enum Switcher1 {
@@ -31,7 +39,6 @@ public class Calculator {
 
     public Switcher1 switcher1;
     public Switcher2 switcher2;
-
     public static class Response {
         public boolean error;
         public boolean m1;
@@ -39,89 +46,90 @@ public class Calculator {
         public String displayedNum;
     }
 
-    private void reformatNumber() {
-        double dDispNum = getDisplayNum();
-        double k = Math.pow(10, getKBySw2());
+    private void rescaleNumber() {
+        if (switcher2 == Switcher2.FLOAT && displayedNum.contains("."))
+            displayedNum = getDisplayNum().stripTrailingZeros().toPlainString();
 
-        dDispNum *= k;
-
-        if(switcher2 == Switcher2.FLOAT)
-            dDispNum = Math.floor(dDispNum);
-        else
-            dDispNum = switch (switcher1) {
-                case UP   -> Math.ceil(dDispNum);
-                case MATH -> Math.round(dDispNum);
-                case CUT  -> Math.floor(dDispNum);
-            };
-
-        DecimalFormat df = new DecimalFormat(getPatternBySw2());
-        displayedNum = df.format(dDispNum / k);
-    }
-    private void simplifyDisplayedNum() {
-        reformatNumber();
-
-        if(displayedNum.indexOf('.') == -1)
-            return;
-
-        int bound = displayedNum.indexOf('-') != -1 ? 14 : 13;
-
-        if(displayedNum.length() < bound)
-            return;
-
-        if(displayedNum.indexOf('.') < bound)
-            displayedNum = displayedNum.substring(0, bound);
+        if (switcher2 != Switcher2.FLOAT)
+            displayedNum = getDisplayNum().setScale(getScale(), getRoundingMode()).toPlainString();
     }
 
+    private int getScale() {
+        return switch (switcher2) {
+            case ZERO       -> 0;
+            case TWO, AUTO  -> 2;
+            case THREE      -> 3;
+            case FOUR       -> 4;
+            case FLOAT      -> 11;
+        };
+    }
+    private RoundingMode getRoundingMode() {
+        return switch (switcher1) {
+            case UP   -> RoundingMode.UP;
+            case MATH -> RoundingMode.HALF_UP;
+            case CUT  -> RoundingMode.DOWN;
+        };
+    }
     private Response collectResponse() {
         Response response = new Response();
         response.displayedNum = displayedNum;
         response.error = error;
-        response.m1 = memNum1 != 0;
-        response.m2 = memNum2 != 0;
+        response.m1 = memNum1.compareTo(ZERO) != 0;
+        response.m2 = memNum2.compareTo(ZERO) != 0;
 
         return response;
     }
 
-    private void checkNum() {
-        int digitsCnt = displayedNum.length();
+    private void checkWholePart() {
+        int wholePart = displayedNum.indexOf(".");
 
-        if(displayedNum.indexOf('.') != -1) {
-            digitsCnt = digitsCnt - 1;
-            error = false;
-        }
+        if (wholePart == -1)
+            wholePart = displayedNum.length();
 
-        if(displayedNum.indexOf('-') != -1)
-            digitsCnt = digitsCnt - 1;
+        if (displayedNum.contains("-"))
+            wholePart--;
 
-        if (digitsCnt <= 12)
-            return;
-
-        if(displayedNum.indexOf('.') == -1)
+        if (wholePart > 12)
             error = true;
+    }
 
-        displayedNum = displayedNum.substring(0, displayedNum.length() - (digitsCnt - 12));
+    private void cutDispNum() {
+        int fix = 0;
+
+        if (displayedNum.contains("."))
+            fix++;
+
+        if (displayedNum.contains("-"))
+            fix++;
+
+        int digitsCnt = displayedNum.length() - fix;
+        digitsCnt = Math.min(digitsCnt, 12);
+
+        displayedNum = displayedNum.substring(0, digitsCnt + fix);
     }
 
     public Response procNumBtn(String name) {
         ceWasPressed = false;
         mrc2WasPressed = false;
 
-        if(resWasPressed)
+        if (resWasPressed)
             procACBtn();
 
-        if(result) {
+        String dispNum = displayedNum;
+
+        if (result) {
             register = getDisplayNum();
-            displayedNum = "" + name.charAt(0);
+            dispNum = "" + name.charAt(0);
             result = false;
 
         } else if (!error) {
-            if(displayedNum.equals("0"))
-                displayedNum = "" + name.charAt(0); //00
+            if (displayedNum.equals("0"))
+                dispNum = "" + name.charAt(0); //00
             else
-                displayedNum += name;
+                dispNum += name;
         }
 
-        checkNum();
+        setDisplayNum(dispNum, false);
         return collectResponse();
     }
 
@@ -130,65 +138,90 @@ public class Calculator {
         mrc2WasPressed = false;
         resWasPressed = false;
 
-        if(result) {
+        if (result) {
             op = name;
+
         } else if (!error) {
             procResBtn(name);
             op = name;
             result = true;
         }
 
-        double dDispNum = getDisplayNum();
-
-        if(switcher2 == Switcher2.AUTO && dDispNum % 1 == 0)
-            if(op.equals("plus") || op.equals("minus"))
-                displayedNum = new DecimalFormat(getPatternBySw2()).format(dDispNum / 100);
-
         return collectResponse();
+    }
+
+    private boolean isNeedDivBy100(String name) {
+        if (switcher2 != Switcher2.AUTO)
+            return false;
+
+        if (displayedNum.contains("."))
+            return false;
+
+        if (op == null)
+            return name.equals("plus") || name.equals("minus") || name.equals("res");
+
+        return op.equals("plus") || op.equals("minus");
+    }
+
+    private void fixEmptyRegister(String op) {
+
+        switch (op) {
+            case "plus", "inc" -> register = getDisplayNum();
+            case "minus" -> {
+                register = getDisplayNum();
+                setDisplayNum(ZERO);
+            }
+            case "div" -> {
+                register = getDisplayNum();
+                setDisplayNum(ONE);
+            }
+        };
+
     }
 
     public Response procResBtn(String name) {
         ceWasPressed = false;
         mrc2WasPressed = false;
 
-        if(name.equals("res"))
+        boolean resButton = name.equals("res");
+
+        if (resButton)
             resWasPressed = true;
 
-        double dDispNum = getDisplayNum();
+        BigDecimal dDispNum = getDisplayNum();
 
-        if(op == null || error) {
-            if(switcher2 == Switcher2.AUTO)
-                displayedNum = dDispNum / 100 + "";
+        if (op == null || error) {
+            if (isNeedDivBy100(name))
+                dDispNum = divBy100(dDispNum);
 
+            setDisplayNum(dDispNum, resButton);
             return collectResponse();
         }
 
-        double left = result ? dDispNum : register;
-        double right = result ? register : dDispNum;
+        if (isNeedDivBy100(name))
+            dDispNum = divBy100(dDispNum);
 
-        if(switcher2 == Switcher2.AUTO) {
-            left /= 100;
-
-            if(op.equals("plus") || op.equals("minus"))
-                right /= 100;
+        if(register == null) {
+            fixEmptyRegister(op);
+            dDispNum = getDisplayNum();
         }
+        
+        BigDecimal left = result ? dDispNum : register;
+        BigDecimal right = result ? register : dDispNum;
 
-        if(op.equals("div") && right == 0) {
+        if (op.equals("div") && right.compareTo(ZERO) == 0) {
             error = true;
             displayedNum = "0";
-
         } else {
-            double res = switch (op) {
-                case "plus" -> left + right;
-                case "minus" -> left - right;
-                case "inc" -> left * right;
-                case "div" -> left / right;
-                default -> 0;
+            BigDecimal res = switch (op) {
+                case "plus" -> left.add(right);
+                case "minus" -> left.subtract(right);
+                case "inc" -> left.multiply(right);
+                case "div" -> left.divide(right, getScale(), getRoundingMode());
+                default -> ZERO;
             };
 
-            displayedNum = res + "";
-
-            simplifyDisplayedNum();
+            setDisplayNum(res, resButton);
 
             if (!result)
                 register = dDispNum;
@@ -196,7 +229,6 @@ public class Calculator {
             result = true;
         }
 
-        checkNum();
         return collectResponse();
     }
 
@@ -205,30 +237,33 @@ public class Calculator {
         mrc2WasPressed = false;
         resWasPressed = false;
 
-        if(op == null || error)
+        if (op == null || error || register == null)
             return collectResponse();
 
-        double dDispNum = getDisplayNum();
+        BigDecimal dDispNum = getDisplayNum();
 
-        double left = result ? dDispNum : register;
+        BigDecimal left = result ? dDispNum : register;
 
-        double res = switch (op) {
-            case "plus"  -> left + ((register * dDispNum) / 100);
-            case "minus" -> left - ((register * dDispNum) / 100);
-            case "inc"   -> left * (dDispNum / 100.0);
-            case "div"   -> left / (dDispNum / 100.0);
-            default -> 0;
+        BigDecimal res = switch (op) {
+            case "plus"  -> left.add(divBy100(register.multiply(dDispNum)));
+            case "minus" -> left.subtract(divBy100(register.multiply(dDispNum)));
+            case "inc"   -> left.multiply(divBy100(dDispNum));
+            case "div"   -> left.divide(divBy100(dDispNum), getScale(), getRoundingMode());
+            default -> ZERO;
         };
 
-        displayedNum = res + "";
-        simplifyDisplayedNum();
+        setDisplayNum(res);
 
-        if(!result)
+        if (!result)
             register = dDispNum;
 
         result = true;
-        checkNum();
+
         return collectResponse();
+    }
+
+    private BigDecimal divBy100(BigDecimal value) {
+        return value.divide(HUNDRED, getScale(), getRoundingMode());
     }
 
     public Response procMuBtn() {
@@ -236,29 +271,30 @@ public class Calculator {
         mrc2WasPressed = false;
         resWasPressed = false;
 
-        double a = register;
-        double b = getDisplayNum();
+        if(register == null)
+            return collectResponse();
 
-        double res = getDisplayNum();
+        BigDecimal a = register;
+        BigDecimal b = getDisplayNum();
+        BigDecimal res = getDisplayNum();
 
-        if(muCnt == 0)
-            switch (op) {
-                case "plus" -> res = ((a + b) / b) * 100;
-                case "minus" -> res = ((a - b) / b) * 100;
-                case "inc" -> res = a * (1 + b / 100);
-                case "div" -> res = a / (1 - b / 100);
+        if (muCnt == 0)
+            res = switch (op) {
+                case "plus"  -> HUNDRED.multiply(a.add(b).divide(b, getScale(), getRoundingMode()));
+                case "minus" -> ((a.subtract(b)).divide(b, getScale(), getRoundingMode())).multiply(HUNDRED);
+                case "inc"   -> a.multiply(ONE.add(divBy100(b)));
+                case "div"   -> a.divide(ONE.subtract(divBy100(b)), getScale(), getRoundingMode());
+                default -> ZERO;
             };
 
-        if(muCnt == 1 && muDiv)
-            res = b - a;
+        if (muCnt == 1 && muDiv)
+            res = b.subtract(a);
 
         muCnt++;
         muDiv = "div".equals(op);
         op = null;
         result = true;
-        displayedNum = res + "";
-        simplifyDisplayedNum();
-        checkNum();
+        setDisplayNum(res);
         return collectResponse();
     }
 
@@ -283,10 +319,10 @@ public class Calculator {
         mrc2WasPressed = false;
         resWasPressed = false;
         displayedNum = "0";
-        register = 0;
+        register = null;
         op = null;
-        memNum1 = 0;
-        memNum2 = 0;
+        memNum1 = ZERO;
+        memNum2 = ZERO;
         error = false;
         result = false;
         muCnt = 0;
@@ -297,8 +333,7 @@ public class Calculator {
         ceWasPressed = false;
         mrc2WasPressed = false;
         resWasPressed = false;
-        displayedNum = "" + memNum1;
-        simplifyDisplayedNum();
+        setDisplayNum(memNum1);
         return collectResponse();
     }
 
@@ -306,7 +341,7 @@ public class Calculator {
         ceWasPressed = false;
         mrc2WasPressed = false;
         resWasPressed = false;
-        memNum1 = 0;
+        memNum1 = ZERO;
         return collectResponse();
     }
 
@@ -315,8 +350,10 @@ public class Calculator {
         mrc2WasPressed = false;
         resWasPressed = false;
 
-        memNum1 += getDisplayNum();
-        result = true;
+        if (!error) {
+            memNum1 = memNum1.add(getDisplayNum());
+            result = true;
+        }
 
         return collectResponse();
     }
@@ -325,8 +362,12 @@ public class Calculator {
         ceWasPressed = false;
         mrc2WasPressed = false;
         resWasPressed = false;
-        memNum1 -= getDisplayNum();
-        result = true;
+
+        if (!error) {
+            memNum1 = memNum1.subtract(getDisplayNum());
+            result = true;
+        }
+
         return collectResponse();
     }
 
@@ -334,15 +375,17 @@ public class Calculator {
         ceWasPressed = false;
         mrc2WasPressed = false;
         resWasPressed = false;
+        BigDecimal displayState = getDisplayNum();
 
-        double dispStateLast = Double.parseDouble(displayedNum);
+        if (!error) {
+            switch (name) {
+                case "MII+" -> memNum2 = memNum2.add(displayState);
+                case "MII-" -> memNum2 = memNum2.subtract(displayState);
+            }
 
-        switch (name) {
-            case "MII+" -> memNum2 += dispStateLast;
-            case "MII-" -> memNum2 -= dispStateLast;
+            result = true;
         }
 
-        result = true;
         return collectResponse();
     }
 
@@ -351,11 +394,9 @@ public class Calculator {
         resWasPressed = false;
 
         if (mrc2WasPressed) {
-            memNum2 = 0;
-
+            memNum2 = ZERO;
         } else {
-            displayedNum = "" + memNum2;
-            simplifyDisplayedNum();
+            setDisplayNum(memNum2);
             mrc2WasPressed = true;
         }
 
@@ -366,22 +407,16 @@ public class Calculator {
         ceWasPressed = false;
         mrc2WasPressed = false;
         resWasPressed = false;
-        double rootArg;
 
-        if(error)
+        if (error)
             return collectResponse();
 
-        if(displayedNum.charAt(0) == '-') {
+        if (displayedNum.charAt(0) == '-') {
             procChangeSignBtn();
-            rootArg = Double.parseDouble(displayedNum);
             error = true;
-
-        } else {
-            rootArg = getDisplayNum();
         }
 
-        displayedNum = "" + Math.sqrt(rootArg);
-        simplifyDisplayedNum();
+        setDisplayNum(getDisplayNum().sqrt(new MathContext(64, getRoundingMode())));
         return collectResponse();
     }
 
@@ -390,12 +425,12 @@ public class Calculator {
         mrc2WasPressed = false;
         resWasPressed = false;
 
-        if(result) {
+        if (result) {
             register = getDisplayNum();
             displayedNum = "0.";
             result = false;
 
-        } else if(displayedNum.indexOf('.') == -1)
+        } else if (displayedNum.indexOf('.') == -1)
             displayedNum += '.';
 
         return collectResponse();
@@ -406,13 +441,11 @@ public class Calculator {
         mrc2WasPressed = false;
         resWasPressed = false;
 
-        if(displayedNum.equals("0"))
+        if (displayedNum.equals("0"))
             return collectResponse();
 
-        if(!error) {
-            displayedNum = "" + getDisplayNum() * (-1);
-            simplifyDisplayedNum();
-        }
+        if (!error)
+            setDisplayNum(getDisplayNum().multiply(ONE.negate()));
 
         return collectResponse();
     }
@@ -422,36 +455,35 @@ public class Calculator {
         mrc2WasPressed = false;
         resWasPressed = false;
 
-        displayedNum = displayedNum.length() > 1 ? displayedNum.substring(0, displayedNum.length() - 1) : "0";
+        if (error)
+            error = false;
+        else
+            setDisplayNum(displayedNum.length() > 1 ? displayedNum.substring(0, displayedNum.length() - 1) : "0", false);
 
         return collectResponse();
     }
 
-    private int getKBySw2() {
-        return switch(switcher2) {
-            case ZERO       -> 0;
-            case TWO, AUTO  -> 2;
-            case THREE      -> 3;
-            case FOUR       -> 4;
-            case FLOAT      -> 11;
-        };
+    public BigDecimal getDisplayNum() {
+        return new BigDecimal(displayedNum);
+    }
+    private void setDisplayNum(String value, boolean rescale) {
+        displayedNum = value;
+
+        if (rescale)
+            rescaleNumber();
+
+        checkWholePart();
+        cutDispNum();
     }
 
-    private String getPatternBySw2() {
-        return switch(switcher2) {
-            case ZERO      -> "0.";
-            case TWO, AUTO -> "0.00";
-            case THREE     -> "0.000";
-            case FOUR      -> "0.0000";
-            case FLOAT     -> "0.###########";
-        };
+    private void setDisplayNum(BigDecimal value,  boolean rescale) {
+        setDisplayNum(value.toPlainString(), rescale);
     }
 
-    public Double getDisplayNum() {
-        return Double.parseDouble(displayedNum);
+    private void setDisplayNum(BigDecimal value) {
+        setDisplayNum(value.toPlainString(), true);
     }
-
     public Response getDisplayState() {
-            return collectResponse();
+        return collectResponse();
     }
 }

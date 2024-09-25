@@ -32,7 +32,7 @@ public class Digit {
     public void setVisible(boolean turnOn) {
         dot.setVisible(turnOn);
 
-        for(int i = 0; i < 7; i++)
+        for (int i = 0; i < 7; i++)
             segments[i].setVisible(turnOn);
     }
 
@@ -100,7 +100,7 @@ public class Digit {
     }
 
     private void set(boolean[] cfgD) {
-        for(int i = 0; i < 7; i++)
+        for (int i = 0; i < 7; i++)
             switchSegment(segments[i], cfgD[i]);
     }
 
